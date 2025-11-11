@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>冬季休業 勤務態様一覧（閲覧）</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      margin: 24px; 
+      background: #f6f8fa; 
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 { text-align: center; color: #1976d2; }
+    .controls {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      margin: 20px 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .controls label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    .controls select {
+      width: 100%;
+      max-width: 400px;
+      padding: 10px;
+      font-size: 16px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+    }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-top: 20px; 
+      background: white;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    th, td { 
+      border: 1px solid #ddd; 
+      padding: 12px; 
+      text-align: center; 
+    }
+    th {
+      background: #1976d2;
+      color: white;
+      font-weight: bold;
+    }
+    tbody tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    tbody tr:hover {
+      background: #e3f2fd;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #666;
+    }
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+    .nav-buttons {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .nav-buttons a {
+      display: inline-block;
+      margin: 0 10px;
+      padding: 12px 24px;
+      background: #1976d2;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    .nav-buttons a:hover {
+      background: #1565c0;
+    }
+    .weekend {
+      background: #fff3e0 !important;
+    }
+    .holiday {
+      background: #ffebee !important;
+    }
+  </style>
+</head>
+<body>
+  <h1>冬季休業 勤務態様一覧（閲覧）</h1>
+
+  <div class="nav-buttons">
+    <a href="index.html">📝 データ入力</a>
+  </div>
+
+  <div class="controls">
+    <label for="teacherSelect">職員を選択：</label>
+    <select id="teacherSelect">
+      <option value="">-- 職員を選択してください --</option>
+    </select>
+  </div>
+
+  <div id="dataTable"></div>
+
+  <script type="module">
+    import { db } from "./firebase.js";
+    import {
+      collection,
+      getDocs,
+      doc,
+      getDoc,
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+    const teacherSelect = document.getElementById("teacherSelect");
+    const dataTableDiv = document.getElementById("dataTable");
+
+    // 日付リスト
+    const dates = [
+      "2025-12-24", "2025-12-25", "2025-12-26", "2025-12-27", "2025-12-28",
+      "2025-12-29", "2025-12-30", "2025-12-31", "2026-01-01", "2026-01-02",
+      "2026-01-03", "2026-01-04", "2026-01-05", "2026-01-06", "2026-01-07",
+      "2026-01-08", "2026-01-09", "2026-01-10", "2026-01-11", "2026-01-12",
+      "2026-01-13", "2026-01-14"
+    ];
+
+    // 曜日を取得
+    function getDayOfWeek(dateStr) {
+      const days = ["日", "月", "火", "水", "木", "金", "土"];
+      const date = new Date(dateStr);
+      return days[date.getDay()];
+    }
+
+    // 週末・祝日判定
+    function getDateClass(dateStr) {
+      const date = new Date(dateStr);
+      const day = date.getDay();
+      if (day === 0 || day === 6) return "weekend"; // 土日
+      if (dateStr === "2026-01-01") return "holiday"; // 元日
+      return "";
+    }
+
+    // 職員リストを読み込み
+    async function loadTeachers() {
+      try {
+        dataTableDiv.innerHTML = '<div class="loading">職員リストを読み込み中...</div>';
+        
+        const querySnapshot = await getDocs(collection(db, "winter-shifts"));
+        const teachers = [];
+
+        querySnapshot.forEach((doc) => {
+          // ランダムIDでない職員名のみ
+          if (!/^[a-zA-Z0-9]{15,}$/.test(doc.id)) {
+            teachers.push(doc.id);
+          }
+        });
+
+        teachers.sort();
+
+        if (teachers.length === 0) {
+          dataTableDiv.innerHTML = '<div class="no-data">登録されている職員がいません。</div>';
+          return;
+        }
+
+        // ドロップダウンに職員を追加
+        teachers.forEach(teacher => {
+          const option = document.createElement("option");
+          option.value = teacher;
+          option.textContent = teacher;
+          teacherSelect.appendChild(option);
+        });
+
+        dataTableDiv.innerHTML = '<div class="no-data">職員を選択してください。</div>';
+
+        console.log("✅ 職員リスト読み込み完了:", teachers);
+      } catch (err) {
+        console.error("❌ エラー:", err);
+        dataTableDiv.innerHTML = '<div class="no-data">エラーが発生しました。</div>';
+      }
+    }
+
+    // 職員のデータを読み込み
+    async function loadTeacherData(teacherId) {
+      try {
+        dataTableDiv.innerHTML = '<div class="loading">データを読み込み中...</div>';
+
+        const records = [];
+
+        for (const dateStr of dates) {
+          const docRef = doc(db, "winter-shifts", teacherId, "records", dateStr);
+          const docSnap = await getDoc(docRef);
+
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            records.push({
+              date: dateStr,
+              am: data.am || "-",
+              pm: data.pm || "-"
+            });
+          } else {
+            records.push({
+              date: dateStr,
+              am: "-",
+              pm: "-"
+            });
+          }
+        }
+
+        // テーブル作成
+        let html = '<table>';
+        html += '<thead><tr><th>日付</th><th>曜日</th><th>午前</th><th>午後</th></tr></thead>';
+        html += '<tbody>';
+
+        records.forEach(record => {
+          const dayOfWeek = getDayOfWeek(record.date);
+          const dateClass = getDateClass(record.date);
+          html += `<tr class="${dateClass}">`;
+          html += `<td>${record.date}</td>`;
+          html += `<td>${dayOfWeek}</td>`;
+          html += `<td>${record.am}</td>`;
+          html += `<td>${record.pm}</td>`;
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        dataTableDiv.innerHTML = html;
+
+        console.log("✅ データ読み込み完了:", records.length, "件");
+      } catch (err) {
+        console.error("❌ エラー:", err);
+        dataTableDiv.innerHTML = '<div class="no-data">データの読み込みに失敗しました。</div>';
+      }
+    }
+
+    // 職員選択時のイベント
+    teacherSelect.addEventListener("change", (e) => {
+      const teacherId = e.target.value;
+      if (teacherId) {
+        console.log("職員選択:", teacherId);
+        loadTeacherData(teacherId);
+      } else {
+        dataTableDiv.innerHTML = '<div class="no-data">職員を選択してください。</div>';
+      }
+    });
+
+    // 初期読み込み
+    loadTeachers();
+  </script>
+</body>
+</html>
