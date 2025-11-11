@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>冬季休業 勤務態様一覧入力（午前・午後）</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 24px; background: #f6f8fa; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    select { width: 100%; padding: 6px; }
+    .input-section { margin: 20px 0; }
+    .input-section label { display: block; margin-bottom: 8px; font-weight: bold; }
+    .input-section input { width: 300px; padding: 8px; font-size: 14px; }
+    button { margin-top: 20px; padding: 12px 20px; font-size: 16px; background: #1976d2; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+    button:hover { background: #1565c0; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+    .result { margin-top: 16px; padding: 12px; background: #eee; border-radius: 6px; }
+    .result.success { background: #c8e6c9; color: #2e7d32; }
+    .result.error { background: #ffcdd2; color: #c62828; }
+  </style>
+</head>
+<body>
+  <h1>冬季休業 勤務態様一覧入力（午前・午後）</h1>
+
+  <div class="input-section">
+    <label for="teacherId">職員名（必須）：</label>
+    <input type="text" id="teacherId" placeholder="例：山田太郎" />
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>日付</th>
+        <th>午前</th>
+        <th>午後</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 冬休みの日付一覧 -->
+      <tr><td>2025-12-24（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-25（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-26（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-27（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-28（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-29（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-30（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2025-12-31（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-01（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-02（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-03（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-04（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-05（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-06（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-07（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-08（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-09（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-10（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-11（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-12（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-13（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+      <tr><td>2026-01-14（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
+    </tbody>
+  </table>
+
+  <button id="saveBtn">保存</button>
+  <div class="result" id="result">未保存</div>
+
+  <script>
+    // 勤務態様の選択肢（ページ読み込み時に即座に追加）
+    const options = [
+      "勤務（学校）","勤務（在宅）","出張（旅行）","出張（校外）",
+      "年休","時休","特別休暇","振替休日","代日休暇","職専免","その他"
+    ];
+
+    // 全ての select に選択肢を追加
+    document.querySelectorAll("select").forEach(sel => {
+      options.forEach(opt => {
+        const o = document.createElement("option");
+        o.value = opt;
+        o.textContent = opt;
+        sel.appendChild(o);
+      });
+    });
+  </script>
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
