@@ -79,6 +79,18 @@ if (!saveBtn || !resultEl || !teacherInput) {
       console.log(`💾 ${records.length}件のレコードを保存開始...`);
       console.log("保存先パス:", `winter-shifts/${teacherId}/records/{日付}`);
 
+      // 職員ドキュメント自体にもフィールドを追加
+      await setDoc(
+          await setDoc(
+            doc(db, "winter-shifts", teacherId),
+            {
+              name: teacherId,
+              その他: "未設定",
+              createdAt: serverTimestamp()
+            },
+            { merge: true }
+          );
+
       // 職員ごとのサブコレクションに日付ドキュメントで上書き保存
       // パス: winter-shifts/{teacherId}/records/{dateText}
       let successCount = 0;
