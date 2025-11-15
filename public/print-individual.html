@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>個別勤務動態印刷</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .staff-select-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .staff-select-section label {
+            display: block;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .staff-select-section select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .print-button-area {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .print-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 14px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .print-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        /* 印刷プレビュー */
+        .print-preview {
+            display: none;
+            background: white;
+            padding: 40px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        .print-header {
+            text-align: center;
+            border-bottom: 3px solid #333;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .print-header h2 {
+            font-size: 1.8em;
+            margin-bottom: 10px;
+        }
+        
+        .print-header .staff-name {
+            font-size: 2.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .print-header .period {
+            font-size: 1.1em;
+            color: #666;
+        }
+        
+        .date-section {
+            margin-bottom: 25px;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            background: #f8f9fa;
+        }
+        
+        .date-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+        
+        .period-row {
+            margin-bottom: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .period-label {
+            font-weight: 600;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .period-value {
+            font-size: 1.05em;
+            margin-bottom: 3px;
+        }
+        
+        .period-note {
+            color: #666;
+            font-size: 0.95em;
+            padding-left: 20px;
+            font-style: italic;
+        }
+        
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        /* 印刷用スタイル */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+                padding: 20px;
+            }
+            
+            .nav-buttons,
+            .staff-select-section,
+            .print-button-area {
+                display: none !important;
+            }
+            
+            .print-preview {
+                display: block !important;
+                border: none;
+                padding: 0;
+            }
+            
+            h1 {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖨️ 個別勤務動態印刷</h1>
+        
+        <div class="nav-buttons">
+            <a href="staff-master.html" class="button">👥 職員管理</a>
+            <a href="index.html" class="button">📝 勤務入力</a>
+            <a href="view.html" class="button">📊 一覧表示</a>
+        </div>
+        
+        <div class="staff-select-section">
+            <label for="staffSelect">印刷する職員を選択してください：</label>
+            <select id="staffSelect">
+                <option value="">-- 職員を選択 --</option>
+            </select>
+        </div>
+        
+        <div class="print-button-area" id="printButtonArea" style="display: none;">
+            <button class="print-btn" onclick="window.print()">🖨️ 印刷する</button>
+        </div>
+        
+        <div class="print-preview" id="printPreview">
+            <div class="print-header">
+                <h2>冬季休業期間 勤務動態表</h2>
+                <div class="staff-name" id="printStaffName"></div>
+                <div class="period">令和7年度 冬季休業期間（12月24日～1月14日）</div>
+            </div>
+            
+            <div id="printContent"></div>
+        </div>
+        
+        <div class="no-data" id="noData" style="display: none;">
+            職員を選択するとプレビューが表示されます
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        const dates = [
+            { date: '2025-12-24', day: '水' },
+            { date: '2025-12-25', day: '木' },
+            { date: '2025-12-26', day: '金' },
+            { date: '2025-12-27', day: '土' },
+            { date: '2025-12-28', day: '日' },
+            { date: '2025-12-29', day: '月' },
+            { date: '2025-12-30', day: '火' },
+            { date: '2025-12-31', day: '水' },
+            { date: '2026-01-01', day: '木' },
+            { date: '2026-01-02', day: '金' },
+            { date: '2026-01-03', day: '土' },
+            { date: '2026-01-04', day: '日' },
+            { date: '2026-01-05', day: '月' },
+            { date: '2026-01-06', day: '火' },
+            { date: '2026-01-07', day: '水' },
+            { date: '2026-01-08', day: '木' },
+            { date: '2026-01-09', day: '金' },
+            { date: '2026-01-10', day: '土' },
+            { date: '2026-01-11', day: '日' },
+            { date: '2026-01-12', day: '月' },
+            { date: '2026-01-13', day: '火' },
+            { date: '2026-01-14', day: '水' }
+        ];
+
+        // 職員リスト読み込み
+        async function loadStaffList() {
+            try {
+                const snapshot = await getDocs(collection(db, 'staff-master'));
+                const staffList = [];
+                
+                snapshot.forEach(doc => {
+                    staffList.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                staffList.sort((a, b) => (a.order || 999) - (b.order || 999));
+                
+                const select = document.getElementById('staffSelect');
+                staffList.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = staff.name;
+                    select.appendChild(option);
+                });
+                
+            } catch (err) {
+                console.error('職員リスト読み込みエラー:', err);
+            }
+        }
+
+        // 職員選択時
+        document.getElementById('staffSelect').addEventListener('change', async function(e) {
+            const staffId = e.target.value;
+            
+            if (!staffId) {
+                document.getElementById('printPreview').style.display = 'none';
+                document.getElementById('printButtonArea').style.display = 'none';
+                document.getElementById('noData').style.display = 'block';
+                return;
+            }
+            
+            const staffName = e.target.options[e.target.selectedIndex].textContent;
+            await loadStaffData(staffId, staffName);
+        });
+
+        async function loadStaffData(staffId, staffName) {
+            try {
+                // 職員名を設定
+                document.getElementById('printStaffName').textContent = staffName;
+                
+                // 勤務記録を取得
+                const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staffId, 'records'));
+                const records = {};
+                
+                recordsSnapshot.forEach(doc => {
+                    records[doc.id] = doc.data();
+                });
+                
+                // 印刷内容を生成
+                const contentHtml = dates.map(d => {
+                    const data = records[d.date] || {};
+                    const hasData = data.am || data.amNote || data.pm || data.pmNote;
+                    
+                    if (!hasData) {
+                        return `
+                            <div class="date-section">
+                                <div class="date-title">${d.date.split('-')[1]}月${d.date.split('-')[2]}日（${d.day}）</div>
+                                <div style="color: #999; padding: 10px;">勤務記録なし</div>
+                            </div>
+                        `;
+                    }
+                    
+                    return `
+                        <div class="date-section">
+                            <div class="date-title">${d.date.split('-')[1]}月${d.date.split('-')[2]}日（${d.day}）</div>
+                            
+                            <div class="period-row">
+                                <div class="period-label">🌅 午前</div>
+                                <div class="period-value">${data.am || '（未入力）'}</div>
+                                ${data.amNote ? `<div class="period-note">→ ${data.amNote}</div>` : ''}
+                            </div>
+                            
+                            <div class="period-row">
+                                <div class="period-label">🌆 午後</div>
+                                <div class="period-value">${data.pm || '（未入力）'}</div>
+                                ${data.pmNote ? `<div class="period-note">→ ${data.pmNote}</div>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('printContent').innerHTML = contentHtml;
+                document.getElementById('printPreview').style.display = 'block';
+                document.getElementById('printButtonArea').style.display = 'block';
+                document.getElementById('noData').style.display = 'none';
+                
+            } catch (err) {
+                console.error('データ読み込みエラー:', err);
+            }
+        }
+
+        // 初期化
+        loadStaffList();
+    </script>
+</body>
+</html>

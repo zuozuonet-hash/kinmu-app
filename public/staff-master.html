@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>職員マスタ管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 30px;
+            font-size: 2em;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .add-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .add-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .staff-list {
+            background: #fff;
+        }
+        
+        .staff-list h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.2em;
+        }
+        
+        .staff-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+        
+        .staff-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .staff-order {
+            background: #667eea;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+        }
+        
+        .staff-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .staff-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .delete-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .delete-btn:hover {
+            background: #c82333;
+        }
+        
+        .move-btn {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .move-btn:hover {
+            background: #5a6268;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👥 職員マスタ管理</h1>
+        
+        <div class="nav-buttons">
+            <a href="index.html" class="button">📝 勤務入力画面へ</a>
+            <a href="view.html" class="button">📊 一覧表示へ</a>
+            <a href="print-individual.html" class="button">🖨️ 個別印刷へ</a>
+        </div>
+        
+        <div class="message" id="message"></div>
+        
+        <div class="add-section">
+            <h2>新規職員追加</h2>
+            <div class="input-group">
+                <input type="text" id="newStaffName" placeholder="職員名を入力（例：田中太郎）">
+                <button class="button" onclick="addStaff()">追加</button>
+            </div>
+        </div>
+        
+        <div class="staff-list">
+            <h2>登録職員一覧</h2>
+            <div id="loading" class="loading">読み込み中...</div>
+            <div id="staffList"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, getDocs, doc, setDoc, deleteDoc, updateDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        let staffList = [];
+
+        async function loadStaff() {
+            const loading = document.getElementById('loading');
+            const staffListEl = document.getElementById('staffList');
+            
+            loading.style.display = 'block';
+            staffListEl.innerHTML = '';
+            
+            try {
+                const snapshot = await getDocs(collection(db, 'staff-master'));
+                staffList = [];
+                
+                snapshot.forEach(doc => {
+                    staffList.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                // orderでソート
+                staffList.sort((a, b) => (a.order || 999) - (b.order || 999));
+                
+                loading.style.display = 'none';
+                displayStaff();
+                
+            } catch (err) {
+                console.error('読み込みエラー:', err);
+                showMessage(`読み込みに失敗しました: ${err.message}`, 'error');
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayStaff() {
+            const staffListEl = document.getElementById('staffList');
+            
+            if (staffList.length === 0) {
+                staffListEl.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📋</div>
+                        <p>まだ職員が登録されていません。</p>
+                        <p>上部のフォームから職員を追加してください。</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            staffListEl.innerHTML = staffList.map((staff, index) => `
+                <div class="staff-item">
+                    <div class="staff-info">
+                        <div class="staff-order">${index + 1}</div>
+                        <div class="staff-name">${staff.name}</div>
+                    </div>
+                    <div class="staff-actions">
+                        ${index > 0 ? `<button class="move-btn" onclick="moveStaff('${staff.id}', -1)">↑</button>` : ''}
+                        ${index < staffList.length - 1 ? `<button class="move-btn" onclick="moveStaff('${staff.id}', 1)">↓</button>` : ''}
+                        <button class="delete-btn" onclick="deleteStaff('${staff.id}', '${staff.name}')">削除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.addStaff = async function() {
+            const input = document.getElementById('newStaffName');
+            const name = input.value.trim();
+            
+            if (!name) {
+                showMessage('職員名を入力してください', 'error');
+                return;
+            }
+            
+            try {
+                const newOrder = staffList.length + 1;
+                const staffId = `staff${Date.now()}`;
+                
+                await setDoc(doc(db, 'staff-master', staffId), {
+                    name: name,
+                    order: newOrder,
+                    createdAt: new Date().toISOString()
+                });
+                
+                showMessage(`${name} を追加しました`, 'success');
+                input.value = '';
+                await loadStaff();
+                
+            } catch (err) {
+                console.error('追加エラー:', err);
+                showMessage(`追加に失敗しました: ${err.message}`, 'error');
+            }
+        }
+
+        window.deleteStaff = async function(staffId, staffName) {
+            if (!confirm(`${staffName} を削除しますか？\n\n※ 勤務記録も削除されます。この操作は取り消せません。`)) {
+                return;
+            }
+            
+            try {
+                // 職員マスタから削除
+                await deleteDoc(doc(db, 'staff-master', staffId));
+                
+                // 勤務記録も削除（winter-shiftsから）
+                const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staffId, 'records'));
+                const deletePromises = recordsSnapshot.docs.map(d => deleteDoc(d.ref));
+                await Promise.all(deletePromises);
+                
+                // 職員ドキュメント自体も削除
+                try {
+                    await deleteDoc(doc(db, 'winter-shifts', staffId));
+                } catch (e) {
+                    // 存在しない場合はスキップ
+                }
+                
+                showMessage(`${staffName} を削除しました`, 'success');
+                await loadStaff();
+                
+            } catch (err) {
+                console.error('削除エラー:', err);
+                showMessage(`削除に失敗しました: ${err.message}`, 'error');
+            }
+        }
+
+        window.moveStaff = async function(staffId, direction) {
+            const index = staffList.findIndex(s => s.id === staffId);
+            if (index === -1) return;
+            
+            const newIndex = index + direction;
+            if (newIndex < 0 || newIndex >= staffList.length) return;
+            
+            try {
+                // 並び替え
+                [staffList[index], staffList[newIndex]] = [staffList[newIndex], staffList[index]];
+                
+                // orderを更新
+                const updates = staffList.map((staff, idx) => 
+                    updateDoc(doc(db, 'staff-master', staff.id), { order: idx + 1 })
+                );
+                
+                await Promise.all(updates);
+                await loadStaff();
+                
+            } catch (err) {
+                console.error('移動エラー:', err);
+                showMessage(`移動に失敗しました: ${err.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 初期読み込み
+        loadStaff();
+    </script>
+</body>
+</html>

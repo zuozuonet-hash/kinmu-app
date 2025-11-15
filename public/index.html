@@ -1,93 +1,494 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>冬季休業 勤務態様一覧入力（午前・午後）</title>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 24px; background: #f6f8fa; }
-    h1 { text-align: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
-    select { width: 100%; padding: 6px; }
-    .input-section { margin: 20px 0; }
-    .input-section label { display: block; margin-bottom: 8px; font-weight: bold; }
-    .input-section input { width: 300px; padding: 8px; font-size: 14px; }
-    button { margin-top: 20px; padding: 12px 20px; font-size: 16px; background: #1976d2; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
-    button:hover { background: #1565c0; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-    .result { margin-top: 16px; padding: 12px; background: #eee; border-radius: 6px; }
-    .result.success { background: #c8e6c9; color: #2e7d32; }
-    .result.error { background: #ffcdd2; color: #c62828; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>冬季休業 勤務動態入力</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2em;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .staff-select-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .staff-select-section label {
+            display: block;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+        
+        .staff-select-section select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .date-card {
+            background: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .date-header {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .period {
+            margin-bottom: 20px;
+        }
+        
+        .period:last-child {
+            margin-bottom: 0;
+        }
+        
+        .period-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+        
+        .period select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+            margin-bottom: 8px;
+        }
+        
+        .period input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 15px;
+        }
+        
+        .period input[type="text"]:focus,
+        .period select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .save-section {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .save-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 16px 48px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .save-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .message {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            display: none;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .loading-content {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+        }
+        
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
-  <h1>冬季休業 勤務態様一覧入力（午前・午後）</h1>
+    <div class="container">
+        <h1>📝 冬季休業 勤務動態入力</h1>
+        <p class="subtitle">令和7年度 冬季休業期間(12/24～1/14)</p>
+        
+        <div class="nav-buttons">
+            <a href="staff-master.html" class="button">👥 職員管理</a>
+            <a href="view.html" class="button">📊 一覧表示</a>
+            <a href="print-individual.html" class="button">🖨️ 個別印刷</a>
+        </div>
+        
+        <div class="staff-select-section">
+            <label for="staffSelect">職員を選択してください：</label>
+            <select id="staffSelect">
+                <option value="">-- 職員を選択 --</option>
+            </select>
+        </div>
+        
+        <div id="inputArea" style="display: none;">
+            <div id="dateCards"></div>
+            
+            <div class="save-section">
+                <button class="save-btn" id="saveBtn">💾 保存する</button>
+                <div class="message" id="message"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <p>保存中...</p>
+        </div>
+    </div>
 
-  <div style="text-align: center; margin: 20px 0;">
-    <a href="view.html" style="display: inline-block; padding: 12px 24px; background: #2e7d32; color: white; text-decoration: none; border-radius: 6px; font-size: 16px;">📊 データ閲覧</a>
-  </div>
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, getDocs, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
-  <div class="input-section">
-    <label for="teacherId">職員名（必須）：</label>
-    <input type="text" id="teacherId" placeholder="例：山田太郎" />
-  </div>
+        // 勤務・休暇等の選択肢
+        const options = [
+            "",
+            "勤務（学校）","勤務（在宅）","出張（旅行）","出張（校外）",
+            "年休","時休","特別休暇","振替休日","代日休暇","職専免","その他"
+        ];
 
-  <table>
-    <thead>
-      <tr>
-        <th>日付</th>
-        <th>午前</th>
-        <th>午後</th>
-      </tr>
-    </thead>
-    <tbody>
-      <!-- 冬休みの日付一覧 -->
-      <tr><td>2025-12-24（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-25（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-26（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-27（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-28（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-29（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-30（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2025-12-31（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-01（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-02（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-03（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-04（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-05（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-06（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-07（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-08（木）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-09（金）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-10（土）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-11（日）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-12（月）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-13（火）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-      <tr><td>2026-01-14（水）</td><td><select class="am"></select></td><td><select class="pm"></select></td></tr>
-    </tbody>
-  </table>
+        // 日付リスト
+        const dates = [
+            { date: '2025-12-24', day: '水' },
+            { date: '2025-12-25', day: '木' },
+            { date: '2025-12-26', day: '金' },
+            { date: '2025-12-27', day: '土' },
+            { date: '2025-12-28', day: '日' },
+            { date: '2025-12-29', day: '月' },
+            { date: '2025-12-30', day: '火' },
+            { date: '2025-12-31', day: '水' },
+            { date: '2026-01-01', day: '木' },
+            { date: '2026-01-02', day: '金' },
+            { date: '2026-01-03', day: '土' },
+            { date: '2026-01-04', day: '日' },
+            { date: '2026-01-05', day: '月' },
+            { date: '2026-01-06', day: '火' },
+            { date: '2026-01-07', day: '水' },
+            { date: '2026-01-08', day: '木' },
+            { date: '2026-01-09', day: '金' },
+            { date: '2026-01-10', day: '土' },
+            { date: '2026-01-11', day: '日' },
+            { date: '2026-01-12', day: '月' },
+            { date: '2026-01-13', day: '火' },
+            { date: '2026-01-14', day: '水' }
+        ];
 
-  <button id="saveBtn">保存</button>
-  <div class="result" id="result">未保存</div>
+        let currentStaffId = null;
+        let currentStaffName = null;
 
-  <script>
-    // 勤務態様の選択肢（ページ読み込み時に即座に追加）
-    const options = [
-      "勤務（学校）","勤務（在宅）","出張（旅行）","出張（校外）",
-      "年休","時休","特別休暇","振替休日","代日休暇","職専免","その他"
-    ];
+        // 職員リスト読み込み
+        async function loadStaffList() {
+            try {
+                const snapshot = await getDocs(collection(db, 'staff-master'));
+                const staffList = [];
+                
+                snapshot.forEach(doc => {
+                    staffList.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                staffList.sort((a, b) => (a.order || 999) - (b.order || 999));
+                
+                const select = document.getElementById('staffSelect');
+                staffList.forEach(staff => {
+                    const option = document.createElement('option');
+                    option.value = staff.id;
+                    option.textContent = staff.name;
+                    select.appendChild(option);
+                });
+                
+            } catch (err) {
+                console.error('職員リスト読み込みエラー:', err);
+                showMessage('職員リストの読み込みに失敗しました', 'error');
+            }
+        }
 
-    // 全ての select に選択肢を追加
-    document.querySelectorAll("select").forEach(sel => {
-      options.forEach(opt => {
-        const o = document.createElement("option");
-        o.value = opt;
-        o.textContent = opt;
-        sel.appendChild(o);
-      });
-    });
-  </script>
-  <script type="module" src="./main.js"></script>
+        // 入力エリアを生成
+        function generateInputArea() {
+            const container = document.getElementById('dateCards');
+            
+            const html = dates.map(d => `
+                <div class="date-card">
+                    <div class="date-header">${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）</div>
+                    
+                    <div class="period">
+                        <div class="period-label">🌅 午前</div>
+                        <select class="am-select" data-date="${d.date}">
+                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                        </select>
+                        <input type="text" class="am-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+                    </div>
+                    
+                    <div class="period">
+                        <div class="period-label">🌆 午後</div>
+                        <select class="pm-select" data-date="${d.date}">
+                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                        </select>
+                        <input type="text" class="pm-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = html;
+        }
+
+        // 既存データを読み込み
+        async function loadExistingData(staffId) {
+            try {
+                const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staffId, 'records'));
+                
+                recordsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const date = doc.id;
+                    
+                    // 午前
+                    const amSelect = document.querySelector(`.am-select[data-date="${date}"]`);
+                    const amNote = document.querySelector(`.am-note[data-date="${date}"]`);
+                    if (amSelect && data.am) amSelect.value = data.am;
+                    if (amNote && data.amNote) amNote.value = data.amNote;
+                    
+                    // 午後
+                    const pmSelect = document.querySelector(`.pm-select[data-date="${date}"]`);
+                    const pmNote = document.querySelector(`.pm-note[data-date="${date}"]`);
+                    if (pmSelect && data.pm) pmSelect.value = data.pm;
+                    if (pmNote && data.pmNote) pmNote.value = data.pmNote;
+                });
+                
+            } catch (err) {
+                console.error('データ読み込みエラー:', err);
+            }
+        }
+
+        // 職員選択時
+        document.getElementById('staffSelect').addEventListener('change', async function(e) {
+            currentStaffId = e.target.value;
+            
+            if (!currentStaffId) {
+                document.getElementById('inputArea').style.display = 'none';
+                return;
+            }
+            
+            const selectedOption = e.target.options[e.target.selectedIndex];
+            currentStaffName = selectedOption.textContent;
+            
+            generateInputArea();
+            await loadExistingData(currentStaffId);
+            document.getElementById('inputArea').style.display = 'block';
+        });
+
+        // 保存処理
+        document.getElementById('saveBtn').addEventListener('click', async function() {
+            if (!currentStaffId) {
+                showMessage('職員を選択してください', 'error');
+                return;
+            }
+            
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            const saveBtn = document.getElementById('saveBtn');
+            
+            try {
+                loadingOverlay.style.display = 'flex';
+                saveBtn.disabled = true;
+                
+                // 職員ドキュメント作成/更新
+                await setDoc(
+                    doc(db, 'winter-shifts', currentStaffId),
+                    {
+                        name: currentStaffName,
+                        updatedAt: new Date().toISOString()
+                    },
+                    { merge: true }
+                );
+                
+                // 各日付のデータを保存
+                let saveCount = 0;
+                for (const d of dates) {
+                    const amSelect = document.querySelector(`.am-select[data-date="${d.date}"]`);
+                    const amNote = document.querySelector(`.am-note[data-date="${d.date}"]`);
+                    const pmSelect = document.querySelector(`.pm-select[data-date="${d.date}"]`);
+                    const pmNote = document.querySelector(`.pm-note[data-date="${d.date}"]`);
+                    
+                    const am = amSelect.value;
+                    const amNoteValue = amNote.value.trim();
+                    const pm = pmSelect.value;
+                    const pmNoteValue = pmNote.value.trim();
+                    
+                    // 何か入力されている場合のみ保存
+                    if (am || amNoteValue || pm || pmNoteValue) {
+                        await setDoc(
+                            doc(db, 'winter-shifts', currentStaffId, 'records', d.date),
+                            {
+                                am: am,
+                                amNote: amNoteValue,
+                                pm: pm,
+                                pmNote: pmNoteValue,
+                                updatedAt: new Date().toISOString()
+                            }
+                        );
+                        saveCount++;
+                    }
+                }
+                
+                showMessage(`${currentStaffName} のデータを保存しました（${saveCount}件）`, 'success');
+                
+            } catch (err) {
+                console.error('保存エラー:', err);
+                showMessage(`保存に失敗しました: ${err.message}`, 'error');
+            } finally {
+                loadingOverlay.style.display = 'none';
+                saveBtn.disabled = false;
+            }
+        });
+
+        function showMessage(text, type) {
+            const messageEl = document.getElementById('message');
+            messageEl.textContent = text;
+            messageEl.className = `message ${type}`;
+            messageEl.style.display = 'block';
+            
+            setTimeout(() => {
+                messageEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // 初期化
+        loadStaffList();
+    </script>
 </body>
 </html>

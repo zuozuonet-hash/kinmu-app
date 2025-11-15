@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>データ移行ツール</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .warning h2 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .warning p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        .info {
+            background: #d1ecf1;
+            border: 2px solid #17a2b8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .info h2 {
+            color: #0c5460;
+            margin-bottom: 10px;
+        }
+        
+        .info p {
+            color: #0c5460;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            border: none;
+            padding: 16px 32px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(40, 167, 69, 0.4);
+        }
+        
+        .button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .button-secondary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .status {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+        }
+        
+        .status.success {
+            background: #d4edda;
+            border: 2px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .status.error {
+            background: #f8d7da;
+            border: 2px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .status.processing {
+            background: #d1ecf1;
+            border: 2px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .log {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 15px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        
+        .log-item {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 データ移行ツール</h1>
+        
+        <div class="warning">
+            <h2>⚠️ 重要な注意事項</h2>
+            <p>このツールは<strong>既存の旧システムデータ</strong>を<strong>新システム用データ構造</strong>に移行します。</p>
+            <p>移行を実行する前に、必ずFirebaseコンソールでデータのバックアップを取ってください。</p>
+            <p><strong>この操作は取り消せません。</strong></p>
+        </div>
+        
+        <div class="info">
+            <h2>📋 このツールが行うこと</h2>
+            <p><strong>1. 職員マスタの作成:</strong> 既存のwinter-shiftsから職員名を抽出し、staff-masterコレクションに登録</p>
+            <p><strong>2. データ構造の変換:</strong> 既存の勤務記録を新フォーマット（amNote, pmNote付き）に変換</p>
+            <p><strong>3. 互換性の確保:</strong> 旧データを保持したまま新システムで利用可能に</p>
+        </div>
+        
+        <button class="button" id="migrateBtn" onclick="startMigration()">🚀 データ移行を開始</button>
+        <button class="button button-secondary" onclick="location.href='staff-master.html'">👥 職員マスタ管理へ</button>
+        
+        <div id="status" class="status"></div>
+        <div id="log" class="log" style="display: none;"></div>
+    </div>
+
+    <script type="module">
+        import { db } from './firebase.js';
+        import { collection, getDocs, doc, setDoc } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        let logMessages = [];
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString('ja-JP');
+            logMessages.push(`[${timestamp}] ${message}`);
+            updateLogDisplay();
+        }
+
+        function updateLogDisplay() {
+            const logEl = document.getElementById('log');
+            logEl.style.display = 'block';
+            logEl.innerHTML = logMessages.map(msg => `<div class="log-item">${msg}</div>`).join('');
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = message;
+            statusEl.className = `status ${type}`;
+            statusEl.style.display = 'block';
+        }
+
+        window.startMigration = async function() {
+            if (!confirm('データ移行を開始しますか？\n\n既存のデータを新システム用に変換します。\nこの操作は取り消せません。')) {
+                return;
+            }
+            
+            const migrateBtn = document.getElementById('migrateBtn');
+            migrateBtn.disabled = true;
+            logMessages = [];
+            
+            showStatus('データ移行を実行中...', 'processing');
+            addLog('=== データ移行開始 ===');
+            
+            try {
+                // ステップ1: 既存のwinter-shiftsから職員を取得
+                addLog('ステップ1: 既存データの読み込み');
+                const winterShiftsSnapshot = await getDocs(collection(db, 'winter-shifts'));
+                addLog(`${winterShiftsSnapshot.size}件の職員データを検出`);
+                
+                const existingStaff = [];
+                for (const staffDoc of winterShiftsSnapshot.docs) {
+                    const staffName = staffDoc.id;
+                    const staffData = staffDoc.data();
+                    
+                    existingStaff.push({
+                        id: staffName,
+                        name: staffData.name || staffName
+                    });
+                    
+                    addLog(`職員検出: ${staffData.name || staffName}`);
+                }
+                
+                // ステップ2: 職員マスタを作成
+                addLog('ステップ2: 職員マスタの作成');
+                for (let i = 0; i < existingStaff.length; i++) {
+                    const staff = existingStaff[i];
+                    const staffId = `staff${Date.now()}_${i}`;
+                    
+                    await setDoc(doc(db, 'staff-master', staffId), {
+                        name: staff.name,
+                        order: i + 1,
+                        createdAt: new Date().toISOString(),
+                        migratedFrom: staff.id
+                    });
+                    
+                    addLog(`職員マスタに追加: ${staff.name} (ID: ${staffId})`);
+                }
+                
+                // ステップ3: 勤務記録の変換
+                addLog('ステップ3: 勤務記録の変換');
+                for (const staff of existingStaff) {
+                    const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staff.id, 'records'));
+                    addLog(`${staff.name}: ${recordsSnapshot.size}件の記録を処理中`);
+                    
+                    for (const recordDoc of recordsSnapshot.docs) {
+                        const oldData = recordDoc.data();
+                        const dateId = recordDoc.id;
+                        
+                        // 新フォーマットに変換
+                        const newData = {
+                            am: oldData.am || '',
+                            amNote: oldData.amNote || '', // 既に存在する場合は保持
+                            pm: oldData.pm || '',
+                            pmNote: oldData.pmNote || '', // 既に存在する場合は保持
+                            updatedAt: new Date().toISOString(),
+                            migrated: true
+                        };
+                        
+                        await setDoc(
+                            doc(db, 'winter-shifts', staff.id, 'records', dateId),
+                            newData
+                        );
+                    }
+                    
+                    addLog(`${staff.name}: 変換完了`);
+                }
+                
+                addLog('=== データ移行完了 ===');
+                showStatus(`✅ データ移行が完了しました！ ${existingStaff.length}名の職員データを移行しました。`, 'success');
+                
+                setTimeout(() => {
+                    if (confirm('職員マスタ管理画面を開きますか？')) {
+                        location.href = 'staff-master.html';
+                    }
+                }, 2000);
+                
+            } catch (err) {
+                console.error('移行エラー:', err);
+                addLog(`❌ エラー: ${err.message}`);
+                showStatus(`❌ データ移行に失敗しました: ${err.message}`, 'error');
+                migrateBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

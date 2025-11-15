@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>冬休み動態一覧 - 閲覧</title>
+    <title>冬休み勤務動態一覧 - 閲覧</title>
     <style>
         * {
             margin: 0;
@@ -19,7 +19,7 @@
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
             background: white;
             border-radius: 20px;
@@ -59,6 +59,8 @@
             font-size: 16px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
+            text-decoration: none;
+            display: inline-block;
         }
         
         .button:hover {
@@ -90,12 +92,12 @@
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 14px;
+            font-size: 13px;
         }
         
         th, td {
             border: 1px solid #ddd;
-            padding: 12px 8px;
+            padding: 8px 6px;
             text-align: center;
         }
         
@@ -114,6 +116,7 @@
             position: sticky;
             left: 0;
             z-index: 5;
+            min-width: 100px;
         }
         
         .weekend {
@@ -125,21 +128,31 @@
             font-weight: 600;
         }
         
-        .morning-work {
+        .cell-content {
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        
+        .cell-am, .cell-pm {
+            margin-bottom: 4px;
+        }
+        
+        .cell-note {
+            color: #666;
+            font-size: 11px;
+            font-style: italic;
+        }
+        
+        .work {
             background: #d4edda;
-        }
-        
-        .afternoon-work {
-            background: #cfe2ff;
-        }
-        
-        .both-work {
-            background: #b8daff;
-            font-weight: 600;
         }
         
         .leave {
             background: #fff3cd;
+        }
+        
+        .trip {
+            background: #cfe2ff;
         }
         
         .no-data {
@@ -172,17 +185,47 @@
             font-size: 0.9em;
             opacity: 0.9;
         }
+        
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            
+            .container {
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .controls, .stats {
+                display: none !important;
+            }
+            
+            table {
+                font-size: 10px;
+            }
+            
+            th, td {
+                padding: 4px 2px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>❄️ 冬休み動態一覧</h1>
-        <p class="subtitle">令和7年度 冬季休業期間(12/24〜1/14)</p>
+        <h1>❄️ 冬休み勤務動態一覧</h1>
+        <p class="subtitle">令和7年度 冬季休業期間(12/24～1/14)</p>
         
         <div class="controls">
-            <button class="button" onclick="location.href='index.html'">📝 入力画面へ</button>
-            <button class="button" onclick="loadData()">🔄 再読み込み</button>
-            <button class="button" onclick="exportToExcel()">📊 Excel出力</button>
+            <div>
+                <a href="staff-master.html" class="button">👥 職員管理</a>
+                <a href="index.html" class="button">📝 入力画面へ</a>
+                <a href="print-individual.html" class="button">🖨️ 個別印刷</a>
+            </div>
+            <div>
+                <button class="button" onclick="loadData()">🔄 再読み込み</button>
+                <button class="button" onclick="window.print()">🖨️ 印刷</button>
+            </div>
         </div>
         
         <div id="stats" class="stats"></div>
@@ -237,27 +280,37 @@
             statsContainer.innerHTML = '';
             
             try {
-                console.log('🔍 winter-shiftsコレクションを読み込み開始');
-                const staffSnapshot = await getDocs(collection(db, 'winter-shifts'));
-                console.log('📊 取得した職員数:', staffSnapshot.size);
-                console.log('staffSnapshot.docs:', staffSnapshot.docs);
+                // 職員マスタから順序付きリストを取得
+                const staffMasterSnapshot = await getDocs(collection(db, 'staff-master'));
+                const staffMaster = [];
                 
+                staffMasterSnapshot.forEach(doc => {
+                    staffMaster.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                staffMaster.sort((a, b) => (a.order || 999) - (b.order || 999));
+                
+                // 各職員の勤務記録を取得
                 const staffData = {};
                 
-                for (const staffDoc of staffSnapshot.docs) {
-                    const staffName = staffDoc.id;
-                    console.log('職員名:', staffName);
-                    const recordsSnapshot = await getDocs(collection(db, `winter-shifts/${staffName}/records`));
-                    console.log(`📅 ${staffName}のレコード数:`, recordsSnapshot.size);
+                for (const staff of staffMaster) {
+                    const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staff.id, 'records'));
                     
-                    staffData[staffName] = {};
+                    staffData[staff.id] = {
+                        name: staff.name,
+                        records: {}
+                    };
+                    
                     recordsSnapshot.forEach(doc => {
-                        staffData[staffName][doc.id] = doc.data();
+                        staffData[staff.id].records[doc.id] = doc.data();
                     });
                 }
                 
-                displayTable(staffData);
-                displayStats(staffData);
+                displayTable(staffData, staffMaster);
+                displayStats(staffData, staffMaster.length);
                 loading.style.display = 'none';
                 
             } catch (err) {
@@ -268,12 +321,11 @@
             }
         }
 
-        function displayTable(staffData) {
+        function displayTable(staffData, staffMaster) {
             const dates = generateDates();
-            const staffNames = Object.keys(staffData).sort();
             
-            if (staffNames.length === 0) {
-                document.getElementById('tableContainer').innerHTML = '<p style="text-align: center; padding: 40px;">まだデータが登録されていません</p>';
+            if (staffMaster.length === 0) {
+                document.getElementById('tableContainer').innerHTML = '<p style="text-align: center; padding: 40px;">まだ職員が登録されていません。職員マスタから職員を追加してください。</p>';
                 return;
             }
             
@@ -288,35 +340,47 @@
             
             html += '</tr></thead><tbody>';
             
-            staffNames.forEach(staffName => {
-                html += `<tr><td class="staff-name">${staffName}</td>`;
+            staffMaster.forEach(staff => {
+                const staffInfo = staffData[staff.id];
+                html += `<tr><td class="staff-name">${staffInfo.name}</td>`;
                 
                 dates.forEach(date => {
                     const dateStr = date.toISOString().split('T')[0];
-                    const data = staffData[staffName][dateStr];
+                    const data = staffInfo.records[dateStr];
                     
                     let cellClass = 'no-data';
                     let cellContent = '-';
                     
-                    if (data) {
+                    if (data && (data.am || data.pm || data.amNote || data.pmNote)) {
                         const am = data.am || '';
+                        const amNote = data.amNote || '';
                         const pm = data.pm || '';
+                        const pmNote = data.pmNote || '';
                         
-                        if (am.includes('勤務') && pm.includes('勤務')) {
-                            cellClass = 'both-work';
-                            cellContent = '終日勤務';
-                        } else if (am.includes('勤務') && !pm.includes('勤務')) {
-                            cellClass = 'am-work';
-                            cellContent = `午前:${am}<br>午後:${pm}`;
-                        } else if (!am.includes('勤務') && pm.includes('勤務')) {
-                            cellClass = 'pm-work';
-                            cellContent = `午前:${am}<br>午後:${pm}`;
+                        // セルの背景色を決定
+                        if (am.includes('勤務') || pm.includes('勤務')) {
+                            cellClass = 'work';
+                        } else if (am.includes('出張') || pm.includes('出張')) {
+                            cellClass = 'trip';
                         } else if (am.includes('休') || pm.includes('休')) {
                             cellClass = 'leave';
-                            cellContent = `午前:${am}<br>午後:${pm}`;
-                        } else {
-                            cellContent = `午前:${am}<br>午後:${pm}`;
                         }
+                        
+                        cellContent = '<div class="cell-content">';
+                        
+                        if (am || amNote) {
+                            cellContent += '<div class="cell-am">午前: ' + (am || '－');
+                            if (amNote) cellContent += '<div class="cell-note">→' + amNote + '</div>';
+                            cellContent += '</div>';
+                        }
+                        
+                        if (pm || pmNote) {
+                            cellContent += '<div class="cell-pm">午後: ' + (pm || '－');
+                            if (pmNote) cellContent += '<div class="cell-note">→' + pmNote + '</div>';
+                            cellContent += '</div>';
+                        }
+                        
+                        cellContent += '</div>';
                     }
                     
                     const holiday = isHoliday(date);
@@ -336,13 +400,12 @@
             document.getElementById('tableContainer').innerHTML = html;
         }
 
-        function displayStats(staffData) {
-            const staffCount = Object.keys(staffData).length;
+        function displayStats(staffData, staffCount) {
             const dates = generateDates();
             
             let totalRecords = 0;
-            Object.values(staffData).forEach(records => {
-                totalRecords += Object.keys(records).length;
+            Object.values(staffData).forEach(staff => {
+                totalRecords += Object.keys(staff.records).length;
             });
             
             const possibleRecords = staffCount * dates.length;
@@ -370,12 +433,7 @@
             document.getElementById('stats').innerHTML = html;
         }
 
-        function exportToExcel() {
-            alert('Excel出力機能は準備中です。ブラウザの印刷機能（メニュー > プリント）をご利用ください。');
-        }
-
         window.loadData = loadData;
-        window.exportToExcel = exportToExcel;
 
         loadData();
     </script>
