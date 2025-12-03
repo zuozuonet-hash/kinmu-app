@@ -107,107 +107,225 @@
         .print-preview {
             display: none;
             background: white;
-            padding: 40px;
+            padding: 15px;
             border: 2px solid #ddd;
             border-radius: 10px;
         }
         
         .print-header {
             text-align: center;
-            border-bottom: 3px solid #333;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .print-header h2 {
-            font-size: 1.8em;
-            margin-bottom: 10px;
-        }
-        
-        .print-header .staff-name {
-            font-size: 2.2em;
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-        }
-        
-        .print-header .period {
-            font-size: 1.1em;
-            color: #666;
-        }
-        
-        .date-section {
-            margin-bottom: 25px;
-            padding: 15px;
-            border-left: 4px solid #667eea;
-            background: #f8f9fa;
-        }
-        
-        .date-title {
-            font-size: 1.2em;
-            font-weight: bold;
-            color: #333;
+            border-bottom: 2px solid #333;
+            padding-bottom: 8px;
             margin-bottom: 12px;
         }
         
-        .period-row {
-            margin-bottom: 10px;
-            padding: 10px;
-            background: white;
-            border-radius: 5px;
+        .print-header h2 {
+            font-size: 1.3em;
+            margin-bottom: 5px;
         }
         
-        .period-label {
-            font-weight: 600;
+        .print-header .staff-name {
+            font-size: 1.6em;
+            font-weight: bold;
             color: #667eea;
             margin-bottom: 5px;
         }
         
-        .period-value {
-            font-size: 1.05em;
+        .print-header .period {
+            font-size: 0.95em;
+            color: #666;
+        }
+        
+        .date-section {
             margin-bottom: 3px;
+            padding: 3px 6px;
+            border-left: 2px solid #667eea;
+            background: #f8f9fa;
+            page-break-inside: avoid;
+            font-size: 0.9em;
+            line-height: 1.4;
+            border: 1px solid #ddd;
+        }
+        
+        .date-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .date-title {
+            font-weight: bold;
+            color: #333;
+            min-width: 70px;
+            flex-shrink: 0;
+        }
+        
+        .period-info {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            flex-grow: 1;
+        }
+        
+        .period-item {
+            display: inline;
+        }
+        
+        .period-label {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .period-value {
+            color: #333;
         }
         
         .period-note {
             color: #666;
-            font-size: 0.95em;
-            padding-left: 20px;
+            font-size: 0.85em;
+            padding-left: 15px;
             font-style: italic;
+            display: block;
         }
         
         .no-data {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: #999;
         }
         
-        /* 印刷用スタイル */
+        /* 印刷用スタイル - A4縦1枚最適化 モノクロプリンター対応 */
         @media print {
+            @page {
+                size: A4 portrait;
+                margin: 8mm;
+            }
+
             body {
                 background: white;
                 padding: 0;
+                margin: 0;
+                color: #000;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
-            
+
             .container {
                 box-shadow: none;
                 border-radius: 0;
-                padding: 20px;
+                padding: 0;
+                max-width: 100%;
             }
-            
+
             .nav-buttons,
             .staff-select-section,
-            .print-button-area {
+            .print-button-area,
+            h1 {
                 display: none !important;
             }
-            
+
             .print-preview {
                 display: block !important;
                 border: none;
                 padding: 0;
             }
+
+            .print-header {
+                padding-bottom: 5px;
+                margin-bottom: 8px;
+                border-bottom: 3px solid #000;
+            }
+
+            .print-header h2 {
+                font-size: 13px;
+                margin-bottom: 2px;
+                color: #000;
+            }
+
+            .print-header .staff-name {
+                font-size: 16px;
+                margin-bottom: 2px;
+                color: #000;
+                font-weight: bold;
+            }
+
+            .print-header .period {
+                font-size: 9px;
+                color: #000;
+            }
+
+            #printContent {
+                column-count: 1;
+                font-size: 9px;
+            }
+
+            .date-section {
+                break-inside: avoid;
+                page-break-inside: avoid;
+                page-break-after: auto;
+                -webkit-column-break-inside: avoid;
+                margin-bottom: 2px;
+                padding: 3px 5px;
+                border: 1.5px solid #000;
+                background: white;
+                line-height: 1.3;
+                orphans: 3;
+                widows: 3;
+            }
             
-            h1 {
-                display: none;
+            .date-line {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            
+            .date-title {
+                font-weight: bold;
+                min-width: 60px;
+                flex-shrink: 0;
+                color: #000;
+            }
+
+            .period-info {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                flex-grow: 1;
+            }
+
+            .period-item {
+                display: inline;
+            }
+
+            .period-label {
+                font-weight: 600;
+                color: #000;
+            }
+
+            .period-value {
+                color: #000;
+            }
+            
+            .period-note {
+                font-size: 8px;
+                padding-left: 10px;
+                display: block;
+                margin-top: 1px;
+                color: #000;
+                border-top: 1px solid #ccc;
+                padding-top: 2px;
+                margin-top: 2px;
+                page-break-before: avoid;
+            }
+
+            /* ヘッダーの後は改ページしない */
+            .print-header {
+                page-break-after: avoid;
+            }
+
+            /* 日付タイトルと内容が分離しないように */
+            .date-title {
+                page-break-after: avoid;
             }
         }
     </style>
@@ -230,7 +348,13 @@
         </div>
         
         <div class="print-button-area" id="printButtonArea" style="display: none;">
-            <button class="print-btn" onclick="window.print()">🖨️ 印刷する</button>
+            <div style="text-align: center; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 2px solid #667eea;">
+                <p style="color: #667eea; font-size: 18px; font-weight: bold; margin-bottom: 10px;">🖨️ 印刷方法</p>
+                <p style="color: #333; font-size: 16px;">
+                    <strong>Command + P</strong> (Mac) / <strong>Ctrl + P</strong> (Windows)
+                </p>
+                <p style="color: #666; font-size: 14px; margin-top: 8px;">キーボードショートカットで印刷画面が開きます</p>
+            </div>
         </div>
         
         <div class="print-preview" id="printPreview">
@@ -336,32 +460,72 @@
                 // 印刷内容を生成
                 const contentHtml = dates.map(d => {
                     const data = records[d.date] || {};
-                    const hasData = data.am || data.amNote || data.pm || data.pmNote;
+                    const am = data.am || '';
+                    const pm = data.pm || '';
+                    const amNote = data.amNote || '';
+                    const pmNote = data.pmNote || '';
+                    const hasData = am || pm || amNote || pmNote;
                     
+                    // データがない場合は表示しない（スペース節約）
                     if (!hasData) {
+                        return '';
+                    }
+                    
+                    // 年末年始休暇の判定
+                    const yearEndDates = ['2025-12-29', '2025-12-30', '2025-12-31', '2026-01-02', '2026-01-03'];
+                    const isYearEnd = yearEndDates.includes(d.date);
+                    
+                    const dateTitle = `${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）`;
+                    
+                    // 年末年始休暇・祝日で午前・午後ともに同じ場合
+                    if (isYearEnd && am === '年末年始休暇' && pm === '年末年始休暇' && !amNote && !pmNote) {
                         return `
                             <div class="date-section">
-                                <div class="date-title">${d.date.split('-')[1]}月${d.date.split('-')[2]}日（${d.day}）</div>
-                                <div style="color: #999; padding: 10px;">勤務記録なし</div>
+                                <div class="date-line">
+                                    <span class="date-title">${dateTitle}</span>
+                                    <span class="period-value">終日:年末年始休暇</span>
+                                </div>
                             </div>
                         `;
                     }
                     
+                    // 午前・午後が同じで備考がない場合
+                    if (am && pm && am === pm && !amNote && !pmNote) {
+                        return `
+                            <div class="date-section">
+                                <div class="date-line">
+                                    <span class="date-title">${dateTitle}</span>
+                                    <span class="period-value">終日:${am}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    
+                    // 通常の表示（午前・午後を横並び）
+                    let periodHtml = '';
+                    let noteHtml = '';
+                    
+                    if (am || pm) {
+                        const parts = [];
+                        if (am) parts.push(`<span class="period-item"><span class="period-label">午前:</span>${am}</span>`);
+                        if (pm) parts.push(`<span class="period-item"><span class="period-label">午後:</span>${pm}</span>`);
+                        periodHtml = `<div class="period-info">${parts.join(' ')}</div>`;
+                    }
+                    
+                    if (amNote || pmNote) {
+                        const notes = [];
+                        if (amNote) notes.push(amNote);
+                        if (pmNote && pmNote !== amNote) notes.push(pmNote);
+                        noteHtml = `<div class="period-note">→${notes.join('、')}</div>`;
+                    }
+                    
                     return `
                         <div class="date-section">
-                            <div class="date-title">${d.date.split('-')[1]}月${d.date.split('-')[2]}日（${d.day}）</div>
-                            
-                            <div class="period-row">
-                                <div class="period-label">🌅 午前</div>
-                                <div class="period-value">${data.am || '（未入力）'}</div>
-                                ${data.amNote ? `<div class="period-note">→ ${data.amNote}</div>` : ''}
+                            <div class="date-line">
+                                <span class="date-title">${dateTitle}</span>
+                                ${periodHtml}
                             </div>
-                            
-                            <div class="period-row">
-                                <div class="period-label">🌆 午後</div>
-                                <div class="period-value">${data.pm || '（未入力）'}</div>
-                                ${data.pmNote ? `<div class="period-note">→ ${data.pmNote}</div>` : ''}
-                            </div>
+                            ${noteHtml}
                         </div>
                     `;
                 }).join('');

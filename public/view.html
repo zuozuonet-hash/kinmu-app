@@ -121,10 +121,18 @@
         
         .weekend {
             background: #fff3cd;
+            color: #333;
         }
         
         .holiday {
             background: #f8d7da;
+            color: #721c24;
+            font-weight: 600;
+        }
+        
+        .year-end-holiday {
+            background: #d1ecf1;
+            color: #0c5460;
             font-weight: 600;
         }
         
@@ -161,52 +169,103 @@
         }
         
         .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
         }
         
         .stat-card {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 10px 15px;
+            border-radius: 8px;
             text-align: center;
+            flex: 0 1 auto;
+            min-width: 120px;
         }
         
         .stat-number {
-            font-size: 2em;
+            font-size: 1.5em;
             font-weight: bold;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
         
         .stat-label {
-            font-size: 0.9em;
+            font-size: 0.8em;
             opacity: 0.9;
         }
         
+        @media (max-width: 768px) {
+            .stat-card {
+                min-width: calc(50% - 5px);
+            }
+        }
+        
         @media print {
+            @page {
+                size: A3 landscape;
+                margin: 8mm;
+            }
+            
             body {
                 background: white;
                 padding: 0;
+                margin: 0;
             }
             
             .container {
                 box-shadow: none;
                 border-radius: 0;
+                padding: 0;
+                max-width: 100%;
             }
             
             .controls, .stats {
                 display: none !important;
             }
             
+            h1 {
+                font-size: 16px;
+                margin-bottom: 4px;
+            }
+            
+            .subtitle {
+                font-size: 11px;
+                margin-bottom: 8px;
+            }
+            
             table {
-                font-size: 10px;
+                font-size: 7px;
+                width: 100%;
             }
             
             th, td {
-                padding: 4px 2px;
+                padding: 2px 1px;
+                line-height: 1.2;
+            }
+            
+            th {
+                font-size: 7px;
+            }
+            
+            .staff-name {
+                font-size: 8px;
+                min-width: 50px;
+                max-width: 50px;
+            }
+            
+            .cell-content {
+                font-size: 6px;
+                line-height: 1.3;
+            }
+            
+            .cell-am, .cell-pm {
+                margin-bottom: 1px;
+            }
+            
+            .cell-note {
+                font-size: 5.5px;
             }
         }
     </style>
@@ -224,7 +283,7 @@
             </div>
             <div>
                 <button class="button" onclick="loadData()">🔄 再読み込み</button>
-                <button class="button" onclick="window.print()">🖨️ 印刷</button>
+                <span style="color: #667eea; font-weight: 600; padding: 12px 24px;">🖨️ 印刷: Command+P (Mac) / Ctrl+P (Win)</span>
             </div>
         </div>
         
@@ -266,6 +325,15 @@
             };
             const dateStr = date.toISOString().split('T')[0];
             return holidays[dateStr] || null;
+        }
+
+        function isYearEndHoliday(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            const yearEndDates = [
+                '2025-12-29', '2025-12-30', '2025-12-31',
+                '2026-01-02', '2026-01-03'
+            ];
+            return yearEndDates.includes(dateStr);
         }
 
         async function loadData() {
@@ -333,8 +401,23 @@
             
             dates.forEach(date => {
                 const holiday = isHoliday(date);
-                const className = holiday ? 'holiday' : (isWeekend(date) ? 'weekend' : '');
-                const label = holiday || `${date.getMonth() + 1}/${date.getDate()}(${getDayOfWeek(date)})`;
+                const yearEnd = isYearEndHoliday(date);
+                let className = '';
+                let label = '';
+                
+                if (holiday) {
+                    className = 'holiday';
+                    label = holiday;
+                } else if (yearEnd) {
+                    className = 'year-end-holiday';
+                    label = '年末年始休暇';
+                } else if (isWeekend(date)) {
+                    className = 'weekend';
+                    label = `${date.getMonth() + 1}/${date.getDate()}(${getDayOfWeek(date)})`;
+                } else {
+                    label = `${date.getMonth() + 1}/${date.getDate()}(${getDayOfWeek(date)})`;
+                }
+                
                 html += `<th class="${className}">${label}</th>`;
             });
             
@@ -357,35 +440,65 @@
                         const pm = data.pm || '';
                         const pmNote = data.pmNote || '';
                         
-                        // セルの背景色を決定
-                        if (am.includes('勤務') || pm.includes('勤務')) {
-                            cellClass = 'work';
-                        } else if (am.includes('出張') || pm.includes('出張')) {
-                            cellClass = 'trip';
-                        } else if (am.includes('休') || pm.includes('休')) {
-                            cellClass = 'leave';
+                        // 祝日で、午前・午後ともに「祝日」のみの場合は「-」と表示
+                        const holiday = isHoliday(date);
+                        if (holiday && am === '祝日' && pm === '祝日' && !amNote && !pmNote) {
+                            cellClass = 'holiday';
+                            cellContent = '-';
                         }
-                        
-                        cellContent = '<div class="cell-content">';
-                        
-                        if (am || amNote) {
-                            cellContent += '<div class="cell-am">午前: ' + (am || '－');
-                            if (amNote) cellContent += '<div class="cell-note">→' + amNote + '</div>';
+                        // 年末年始休暇期間で、午前・午後ともに「年末年始休暇」のみの場合は「-」と表示
+                        else if (isYearEndHoliday(date) && am === '年末年始休暇' && pm === '年末年始休暇' && !amNote && !pmNote) {
+                            cellClass = 'year-end-holiday';
+                            cellContent = '-';
+                        }
+                        // 午前・午後が同じで備考がない場合は1行表示
+                        else if (am && pm && am === pm && !amNote && !pmNote) {
+                            cellClass = 'no-data';
+                            if (am.includes('勤務')) {
+                                cellClass = 'work';
+                            } else if (am.includes('出張')) {
+                                cellClass = 'trip';
+                            } else if (am.includes('休')) {
+                                cellClass = 'leave';
+                            }
+                            cellContent = '<div class="cell-content">終日: ' + am + '</div>';
+                        }
+                        // 通常の表示（午前・午後を分けて表示）
+                        else {
+                            // セルの背景色を決定
+                            if (am.includes('勤務') || pm.includes('勤務')) {
+                                cellClass = 'work';
+                            } else if (am.includes('出張') || pm.includes('出張')) {
+                                cellClass = 'trip';
+                            } else if (am.includes('休') || pm.includes('休')) {
+                                cellClass = 'leave';
+                            }
+                            
+                            cellContent = '<div class="cell-content">';
+                            
+                            if (am || amNote) {
+                                cellContent += '<div class="cell-am">午前: ' + (am || '－');
+                                if (amNote) cellContent += '<div class="cell-note">→' + amNote + '</div>';
+                                cellContent += '</div>';
+                            }
+                            
+                            if (pm || pmNote) {
+                                cellContent += '<div class="cell-pm">午後: ' + (pm || '－');
+                                if (pmNote) cellContent += '<div class="cell-note">→' + pmNote + '</div>';
+                                cellContent += '</div>';
+                            }
+                            
                             cellContent += '</div>';
                         }
-                        
-                        if (pm || pmNote) {
-                            cellContent += '<div class="cell-pm">午後: ' + (pm || '－');
-                            if (pmNote) cellContent += '<div class="cell-note">→' + pmNote + '</div>';
-                            cellContent += '</div>';
-                        }
-                        
-                        cellContent += '</div>';
                     }
                     
                     const holiday = isHoliday(date);
+                    const yearEnd = isYearEndHoliday(date);
+                    
                     if (holiday && cellClass === 'no-data') {
                         cellClass = 'holiday';
+                    } else if (yearEnd && cellClass === 'no-data') {
+                        cellClass = 'year-end-holiday';
                     } else if (isWeekend(date) && cellClass === 'no-data') {
                         cellClass = 'weekend';
                     }

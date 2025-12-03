@@ -103,6 +103,21 @@
             margin-bottom: 20px;
         }
         
+        .date-card.weekend {
+            background: #fffbf0;
+            border-color: #ffd700;
+        }
+        
+        .date-card.holiday {
+            background: #ffe6e6;
+            border-color: #ff6b6b;
+        }
+        
+        .date-card.year-end-holiday {
+            background: #e6f7ff;
+            border-color: #4dabf7;
+        }
+        
         .date-header {
             font-size: 1.2em;
             font-weight: bold;
@@ -110,6 +125,18 @@
             margin-bottom: 15px;
             padding-bottom: 10px;
             border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .date-card.weekend .date-header {
+            color: #f59f00;
+        }
+        
+        .date-card.holiday .date-header {
+            color: #c92a2a;
+        }
+        
+        .date-card.year-end-holiday .date-header {
+            color: #1971c2;
         }
         
         .period {
@@ -278,7 +305,7 @@
         const options = [
             "",
             "勤務（学校）","勤務（在宅）","出張（旅行）","出張（校外）",
-            "年休","時休","特別休暇","振替休日","代日休暇","職専免","その他"
+            "年休","時休","特別休暇","振替休日","代日休暇","職専免","祝日","年末年始休暇","その他"
         ];
 
         // 日付リスト
@@ -306,6 +333,29 @@
             { date: '2026-01-13', day: '火' },
             { date: '2026-01-14', day: '水' }
         ];
+
+        // 日付判定関数
+        function isWeekend(dateStr) {
+            const date = new Date(dateStr + 'T00:00:00');
+            const day = date.getDay();
+            return day === 0 || day === 6;
+        }
+
+        function isHoliday(dateStr) {
+            const holidays = {
+                '2026-01-01': '元日',
+                '2026-01-13': '成人の日'
+            };
+            return holidays[dateStr] || null;
+        }
+
+        function isYearEndHoliday(dateStr) {
+            const yearEndDates = [
+                '2025-12-29', '2025-12-30', '2025-12-31',
+                '2026-01-02', '2026-01-03'
+            ];
+            return yearEndDates.includes(dateStr);
+        }
 
         let currentStaffId = null;
         let currentStaffName = null;
@@ -343,27 +393,70 @@
         function generateInputArea() {
             const container = document.getElementById('dateCards');
             
-            const html = dates.map(d => `
-                <div class="date-card">
-                    <div class="date-header">${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）</div>
-                    
-                    <div class="period">
-                        <div class="period-label">🌅 午前</div>
-                        <select class="am-select" data-date="${d.date}">
-                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                        </select>
-                        <input type="text" class="am-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+            const html = dates.map(d => {
+                // 日付の種類を判定
+                const holiday = isHoliday(d.date);
+                const yearEnd = isYearEndHoliday(d.date);
+                const weekend = isWeekend(d.date);
+                
+                // カードのクラスを決定
+                let cardClass = 'date-card';
+                let headerLabel = `${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）`;
+                
+                // デフォルト値を決定
+                let defaultValue = '';
+                if (holiday) {
+                    cardClass += ' holiday';
+                    headerLabel += ` - ${holiday}`;
+                    defaultValue = '祝日';
+                } else if (yearEnd) {
+                    cardClass += ' year-end-holiday';
+                    headerLabel += ' - 年末年始休暇';
+                    defaultValue = '年末年始休暇';
+                } else if (weekend) {
+                    cardClass += ' weekend';
+                }
+                
+                // 土日・祝日・年末年始は終日入力のみ
+                if (holiday || yearEnd || weekend) {
+                    return `
+                        <div class="${cardClass}">
+                            <div class="date-header">${headerLabel}</div>
+                            
+                            <div class="period">
+                                <div class="period-label">📅 終日</div>
+                                <select class="all-day-select" data-date="${d.date}">
+                                    ${options.map(opt => `<option value="${opt}" ${opt === defaultValue ? 'selected' : ''}>${opt}</option>`).join('')}
+                                </select>
+                                <input type="text" class="all-day-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // 平日は午前・午後を分ける
+                return `
+                    <div class="${cardClass}">
+                        <div class="date-header">${headerLabel}</div>
+                        
+                        <div class="period">
+                            <div class="period-label">🌅 午前</div>
+                            <select class="am-select" data-date="${d.date}">
+                                ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                            </select>
+                            <input type="text" class="am-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+                        </div>
+                        
+                        <div class="period">
+                            <div class="period-label">🌆 午後</div>
+                            <select class="pm-select" data-date="${d.date}">
+                                ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
+                            </select>
+                            <input type="text" class="pm-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
+                        </div>
                     </div>
-                    
-                    <div class="period">
-                        <div class="period-label">🌆 午後</div>
-                        <select class="pm-select" data-date="${d.date}">
-                            ${options.map(opt => `<option value="${opt}">${opt}</option>`).join('')}
-                        </select>
-                        <input type="text" class="pm-note" data-date="${d.date}" placeholder="備考（出張先・業務内容等）">
-                    </div>
-                </div>
-            `).join('');
+                `;
+            }).join('');
             
             container.innerHTML = html;
         }
@@ -377,13 +470,25 @@
                     const data = doc.data();
                     const date = doc.id;
                     
-                    // 午前
+                    // 終日入力の場合（土日・祝日・年末年始）
+                    const allDaySelect = document.querySelector(`.all-day-select[data-date="${date}"]`);
+                    const allDayNote = document.querySelector(`.all-day-note[data-date="${date}"]`);
+                    if (allDaySelect) {
+                        // 午前と午後が同じ場合は終日として扱う
+                        if (data.am && data.am === data.pm) {
+                            allDaySelect.value = data.am;
+                        } else if (data.am) {
+                            allDaySelect.value = data.am;
+                        }
+                        if (allDayNote && data.amNote) allDayNote.value = data.amNote;
+                    }
+                    
+                    // 午前・午後入力の場合（平日）
                     const amSelect = document.querySelector(`.am-select[data-date="${date}"]`);
                     const amNote = document.querySelector(`.am-note[data-date="${date}"]`);
                     if (amSelect && data.am) amSelect.value = data.am;
                     if (amNote && data.amNote) amNote.value = data.amNote;
                     
-                    // 午後
                     const pmSelect = document.querySelector(`.pm-select[data-date="${date}"]`);
                     const pmNote = document.querySelector(`.pm-note[data-date="${date}"]`);
                     if (pmSelect && data.pm) pmSelect.value = data.pm;
@@ -439,15 +544,28 @@
                 // 各日付のデータを保存
                 let saveCount = 0;
                 for (const d of dates) {
-                    const amSelect = document.querySelector(`.am-select[data-date="${d.date}"]`);
-                    const amNote = document.querySelector(`.am-note[data-date="${d.date}"]`);
-                    const pmSelect = document.querySelector(`.pm-select[data-date="${d.date}"]`);
-                    const pmNote = document.querySelector(`.pm-note[data-date="${d.date}"]`);
+                    // 終日入力の場合
+                    const allDaySelect = document.querySelector(`.all-day-select[data-date="${d.date}"]`);
+                    const allDayNote = document.querySelector(`.all-day-note[data-date="${d.date}"]`);
                     
-                    const am = amSelect.value;
-                    const amNoteValue = amNote.value.trim();
-                    const pm = pmSelect.value;
-                    const pmNoteValue = pmNote.value.trim();
+                    let am = '', amNoteValue = '', pm = '', pmNoteValue = '';
+                    
+                    if (allDaySelect) {
+                        // 終日入力の場合は午前・午後に同じ値を保存
+                        am = pm = allDaySelect.value;
+                        amNoteValue = pmNoteValue = allDayNote ? allDayNote.value.trim() : '';
+                    } else {
+                        // 午前・午後入力の場合
+                        const amSelect = document.querySelector(`.am-select[data-date="${d.date}"]`);
+                        const amNote = document.querySelector(`.am-note[data-date="${d.date}"]`);
+                        const pmSelect = document.querySelector(`.pm-select[data-date="${d.date}"]`);
+                        const pmNote = document.querySelector(`.pm-note[data-date="${d.date}"]`);
+                        
+                        am = amSelect ? amSelect.value : '';
+                        amNoteValue = amNote ? amNote.value.trim() : '';
+                        pm = pmSelect ? pmSelect.value : '';
+                        pmNoteValue = pmNote ? pmNote.value.trim() : '';
+                    }
                     
                     // 何か入力されている場合のみ保存
                     if (am || amNoteValue || pm || pmNoteValue) {
