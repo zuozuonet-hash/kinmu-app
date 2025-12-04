@@ -65,7 +65,7 @@
             border-radius: 10px;
             margin-bottom: 30px;
         }
-        
+
         .staff-select-section label {
             display: block;
             font-weight: bold;
@@ -73,13 +73,39 @@
             margin-bottom: 10px;
             font-size: 1.1em;
         }
-        
+
         .staff-select-section select {
             width: 100%;
             padding: 12px;
             border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 16px;
+        }
+
+        .print-all-section {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            border: 2px solid #ffc107;
+        }
+
+        .print-all-btn {
+            background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+            color: #333;
+            border: none;
+            padding: 16px 40px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .print-all-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 193, 7, 0.4);
         }
         
         .print-button-area {
@@ -219,6 +245,7 @@
 
             .nav-buttons,
             .staff-select-section,
+            .print-all-section,
             .print-button-area,
             h1 {
                 display: none !important;
@@ -327,6 +354,15 @@
             .date-title {
                 page-break-after: avoid;
             }
+
+            /* 各職員のページを区切る */
+            .staff-page-break {
+                page-break-before: always;
+            }
+
+            .staff-page-break:first-child {
+                page-break-before: auto;
+            }
         }
     </style>
 </head>
@@ -339,9 +375,20 @@
             <a href="index.html" class="button">📝 勤務入力</a>
             <a href="view.html" class="button">📊 一覧表示</a>
         </div>
-        
+
+        <div class="print-all-section">
+            <h2 style="color: #ff9800; margin-bottom: 15px; font-size: 1.5em;">📋 全員分まとめて印刷</h2>
+            <p style="margin-bottom: 15px; color: #666;">登録されている全職員の勤務動態を一括で印刷します</p>
+            <button class="print-all-btn" onclick="printAllStaff()">🖨️ 全員分印刷</button>
+            <p style="margin-top: 10px; font-size: 14px; color: #666;">※各職員ごとに1ページずつ印刷されます</p>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #e3f2fd; border-radius: 8px;">
+            <p style="color: #1976d2; font-weight: bold; font-size: 16px;">または</p>
+        </div>
+
         <div class="staff-select-section">
-            <label for="staffSelect">印刷する職員を選択してください：</label>
+            <label for="staffSelect">個別印刷：職員を選択してください</label>
             <select id="staffSelect">
                 <option value="">-- 職員を選択 --</option>
             </select>
@@ -357,15 +404,7 @@
             </div>
         </div>
         
-        <div class="print-preview" id="printPreview">
-            <div class="print-header">
-                <h2>冬季休業期間 勤務動態表</h2>
-                <div class="staff-name" id="printStaffName"></div>
-                <div class="period">令和7年度 冬季休業期間（12月24日～1月14日）</div>
-            </div>
-            
-            <div id="printContent"></div>
-        </div>
+        <div class="print-preview" id="printPreview"></div>
         
         <div class="no-data" id="noData" style="display: none;">
             職員を選択するとプレビューが表示されます
@@ -432,112 +471,172 @@
         // 職員選択時
         document.getElementById('staffSelect').addEventListener('change', async function(e) {
             const staffId = e.target.value;
-            
+
             if (!staffId) {
                 document.getElementById('printPreview').style.display = 'none';
                 document.getElementById('printButtonArea').style.display = 'none';
                 document.getElementById('noData').style.display = 'block';
                 return;
             }
-            
+
             const staffName = e.target.options[e.target.selectedIndex].textContent;
             await loadStaffData(staffId, staffName);
         });
 
+        // 全職員分印刷
+        window.printAllStaff = async function() {
+            const select = document.getElementById('staffSelect');
+            const staffList = Array.from(select.options)
+                .filter(opt => opt.value !== '')
+                .map(opt => ({ id: opt.value, name: opt.textContent }));
+
+            if (staffList.length === 0) {
+                alert('印刷する職員が登録されていません。');
+                return;
+            }
+
+            try {
+                // 全職員のデータを読み込んで一括表示
+                const allStaffHtml = [];
+
+                for (let i = 0; i < staffList.length; i++) {
+                    const staff = staffList[i];
+                    const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staff.id, 'records'));
+                    const records = {};
+
+                    recordsSnapshot.forEach(doc => {
+                        records[doc.id] = doc.data();
+                    });
+
+                    const staffHtml = generateStaffPrintHtml(staff.name, records, i > 0);
+                    allStaffHtml.push(staffHtml);
+                }
+
+                document.getElementById('printPreview').innerHTML = allStaffHtml.join('');
+                document.getElementById('printPreview').style.display = 'block';
+                document.getElementById('printButtonArea').style.display = 'none';
+                document.getElementById('noData').style.display = 'none';
+
+                // 少し待ってから印刷ダイアログを表示
+                setTimeout(() => {
+                    window.print();
+                }, 500);
+
+            } catch (err) {
+                console.error('全員分印刷エラー:', err);
+                alert('印刷データの読み込みに失敗しました。');
+            }
+        };
+
         async function loadStaffData(staffId, staffName) {
             try {
-                // 職員名を設定
-                document.getElementById('printStaffName').textContent = staffName;
-                
                 // 勤務記録を取得
                 const recordsSnapshot = await getDocs(collection(db, 'winter-shifts', staffId, 'records'));
                 const records = {};
-                
+
                 recordsSnapshot.forEach(doc => {
                     records[doc.id] = doc.data();
                 });
-                
+
                 // 印刷内容を生成
-                const contentHtml = dates.map(d => {
-                    const data = records[d.date] || {};
-                    const am = data.am || '';
-                    const pm = data.pm || '';
-                    const amNote = data.amNote || '';
-                    const pmNote = data.pmNote || '';
-                    const hasData = am || pm || amNote || pmNote;
-                    
-                    // データがない場合は表示しない（スペース節約）
-                    if (!hasData) {
-                        return '';
-                    }
-                    
-                    // 年末年始休暇の判定
-                    const yearEndDates = ['2025-12-29', '2025-12-30', '2025-12-31', '2026-01-02', '2026-01-03'];
-                    const isYearEnd = yearEndDates.includes(d.date);
-                    
-                    const dateTitle = `${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）`;
-                    
-                    // 年末年始休暇・祝日で午前・午後ともに同じ場合
-                    if (isYearEnd && am === '年末年始休暇' && pm === '年末年始休暇' && !amNote && !pmNote) {
-                        return `
-                            <div class="date-section">
-                                <div class="date-line">
-                                    <span class="date-title">${dateTitle}</span>
-                                    <span class="period-value">終日:年末年始休暇</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    
-                    // 午前・午後が同じで備考がない場合
-                    if (am && pm && am === pm && !amNote && !pmNote) {
-                        return `
-                            <div class="date-section">
-                                <div class="date-line">
-                                    <span class="date-title">${dateTitle}</span>
-                                    <span class="period-value">終日:${am}</span>
-                                </div>
-                            </div>
-                        `;
-                    }
-                    
-                    // 通常の表示（午前・午後を横並び）
-                    let periodHtml = '';
-                    let noteHtml = '';
-                    
-                    if (am || pm) {
-                        const parts = [];
-                        if (am) parts.push(`<span class="period-item"><span class="period-label">午前:</span>${am}</span>`);
-                        if (pm) parts.push(`<span class="period-item"><span class="period-label">午後:</span>${pm}</span>`);
-                        periodHtml = `<div class="period-info">${parts.join(' ')}</div>`;
-                    }
-                    
-                    if (amNote || pmNote) {
-                        const notes = [];
-                        if (amNote) notes.push(amNote);
-                        if (pmNote && pmNote !== amNote) notes.push(pmNote);
-                        noteHtml = `<div class="period-note">→${notes.join('、')}</div>`;
-                    }
-                    
+                const staffHtml = generateStaffPrintHtml(staffName, records, false);
+
+                document.getElementById('printPreview').innerHTML = staffHtml;
+                document.getElementById('printPreview').style.display = 'block';
+                document.getElementById('printButtonArea').style.display = 'block';
+                document.getElementById('noData').style.display = 'none';
+
+            } catch (err) {
+                console.error('データ読み込みエラー:', err);
+            }
+        }
+
+        // 職員別の印刷HTMLを生成
+        function generateStaffPrintHtml(staffName, records, isPageBreak) {
+            const pageBreakClass = isPageBreak ? ' staff-page-break' : '';
+
+            const contentHtml = dates.map(d => {
+                const data = records[d.date] || {};
+                const am = data.am || '';
+                const pm = data.pm || '';
+                const amNote = data.amNote || '';
+                const pmNote = data.pmNote || '';
+                const hasData = am || pm || amNote || pmNote;
+
+                // データがない場合は表示しない（スペース節約）
+                if (!hasData) {
+                    return '';
+                }
+
+                // 年末年始休暇の判定
+                const yearEndDates = ['2025-12-29', '2025-12-30', '2025-12-31', '2026-01-02', '2026-01-03'];
+                const isYearEnd = yearEndDates.includes(d.date);
+
+                const dateTitle = `${d.date.split('-')[1]}/${d.date.split('-')[2]}（${d.day}）`;
+
+                // 年末年始休暇・祝日で午前・午後ともに同じ場合
+                if (isYearEnd && am === '年末年始休暇' && pm === '年末年始休暇' && !amNote && !pmNote) {
                     return `
                         <div class="date-section">
                             <div class="date-line">
                                 <span class="date-title">${dateTitle}</span>
-                                ${periodHtml}
+                                <span class="period-value">終日:年末年始休暇</span>
                             </div>
-                            ${noteHtml}
                         </div>
                     `;
-                }).join('');
-                
-                document.getElementById('printContent').innerHTML = contentHtml;
-                document.getElementById('printPreview').style.display = 'block';
-                document.getElementById('printButtonArea').style.display = 'block';
-                document.getElementById('noData').style.display = 'none';
-                
-            } catch (err) {
-                console.error('データ読み込みエラー:', err);
-            }
+                }
+
+                // 午前・午後が同じで備考がない場合
+                if (am && pm && am === pm && !amNote && !pmNote) {
+                    return `
+                        <div class="date-section">
+                            <div class="date-line">
+                                <span class="date-title">${dateTitle}</span>
+                                <span class="period-value">終日:${am}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // 通常の表示（午前・午後を横並び）
+                let periodHtml = '';
+                let noteHtml = '';
+
+                if (am || pm) {
+                    const parts = [];
+                    if (am) parts.push(`<span class="period-item"><span class="period-label">午前:</span>${am}</span>`);
+                    if (pm) parts.push(`<span class="period-item"><span class="period-label">午後:</span>${pm}</span>`);
+                    periodHtml = `<div class="period-info">${parts.join(' ')}</div>`;
+                }
+
+                if (amNote || pmNote) {
+                    const notes = [];
+                    if (amNote) notes.push(amNote);
+                    if (pmNote && pmNote !== amNote) notes.push(pmNote);
+                    noteHtml = `<div class="period-note">→${notes.join('、')}</div>`;
+                }
+
+                return `
+                    <div class="date-section">
+                        <div class="date-line">
+                            <span class="date-title">${dateTitle}</span>
+                            ${periodHtml}
+                        </div>
+                        ${noteHtml}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="${pageBreakClass}">
+                    <div class="print-header">
+                        <h2>冬季休業期間 勤務動態表</h2>
+                        <div class="staff-name">${staffName}</div>
+                        <div class="period">令和7年度 冬季休業期間（12月24日～1月14日）</div>
+                    </div>
+                    <div class="print-content">${contentHtml}</div>
+                </div>
+            `;
         }
 
         // 初期化
